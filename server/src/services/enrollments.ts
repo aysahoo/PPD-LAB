@@ -159,6 +159,7 @@ export type CreateEnrollmentResult =
         | "course_not_found"
         | "prerequisites_not_met"
         | "already_pending_or_approved"
+        | "at_capacity_enroll"
         | "forbidden";
     };
 
@@ -174,6 +175,15 @@ export async function createOrRequestEnrollment(
   const [course] = await db.select().from(courses).where(eq(courses.id, courseId)).limit(1);
   if (!course) {
     return { ok: false, reason: "course_not_found" };
+  }
+
+  const [approvedCountRow] = await db
+    .select({ n: count() })
+    .from(enrollments)
+    .where(and(eq(enrollments.courseId, courseId), eq(enrollments.status, "APPROVED")));
+  const approvedCount = Number(approvedCountRow?.n ?? 0);
+  if (approvedCount >= course.capacity) {
+    return { ok: false, reason: "at_capacity_enroll" };
   }
 
   if (!(await prerequisitesSatisfied(userId, courseId))) {

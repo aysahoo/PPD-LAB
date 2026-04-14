@@ -145,7 +145,7 @@ export function CourseDetailPage() {
           />
           <PageHeading
             title={`${course.code} — ${course.title}`}
-            description={`Capacity ${course.capacity}`}
+            description={`${course.credits} credits · capacity ${course.capacity}`}
           />
 
           <Card>

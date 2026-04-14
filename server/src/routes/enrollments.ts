@@ -67,6 +67,11 @@ export async function enrollmentsRoutes(app: FastifyInstance) {
       if (result.reason === "already_pending_or_approved") {
         return reply.code(409).send({ message: "Already enrolled or pending approval" });
       }
+      if (result.reason === "at_capacity_enroll") {
+        return reply
+          .code(409)
+          .send({ message: "Course is at capacity; no new enrollment requests are accepted." });
+      }
       return reply.code(403).send({ message: "Only students can enroll" });
     }
     return reply.code(201).send(result.enrollment);

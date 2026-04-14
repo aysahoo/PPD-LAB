@@ -9,6 +9,7 @@ export type Course = {
   code: string;
   title: string;
   description: string;
+  credits: number;
   capacity: number;
   createdAt: string;
   updatedAt: string;

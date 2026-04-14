@@ -35,11 +35,15 @@ export const courses = pgTable(
     code: varchar("code", { length: 32 }).notNull().unique(),
     title: varchar("title", { length: 200 }).notNull(),
     description: text("description").notNull(),
+    credits: integer("credits").notNull().default(3),
     capacity: integer("capacity").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
-  () => [check("courses_capacity_positive", sql`capacity > 0`)],
+  () => [
+    check("courses_capacity_positive", sql`capacity > 0`),
+    check("courses_credits_positive", sql`credits > 0`),
+  ],
 );
 
 export const coursePrerequisites = pgTable(
@@ -94,4 +98,10 @@ export const notifications = pgTable("notifications", {
   type: varchar("type", { length: 64 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** JWT IDs revoked by logout (server-side invalidation until original exp). */
+export const revokedTokens = pgTable("revoked_tokens", {
+  jti: varchar("jti", { length: 36 }).primaryKey(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 });

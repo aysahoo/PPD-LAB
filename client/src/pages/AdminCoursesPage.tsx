@@ -48,6 +48,7 @@ const courseFormSchema = z.object({
   code: z.string().min(1, 'Required').max(32),
   title: z.string().min(1, 'Required').max(200),
   description: z.string(),
+  credits: z.coerce.number().int().positive(),
   capacity: z.coerce.number().int().positive(),
 })
 
@@ -83,12 +84,12 @@ function AdminCoursesContent() {
 
   const createForm = useForm<CourseFormValues>({
     resolver: zodResolver(courseFormSchema),
-    defaultValues: { code: '', title: '', description: '', capacity: 30 },
+    defaultValues: { code: '', title: '', description: '', credits: 3, capacity: 30 },
   })
 
   const editForm = useForm<CourseFormValues>({
     resolver: zodResolver(courseFormSchema),
-    defaultValues: { code: '', title: '', description: '', capacity: 1 },
+    defaultValues: { code: '', title: '', description: '', credits: 3, capacity: 1 },
   })
 
   useEffect(() => {
@@ -105,6 +106,7 @@ function AdminCoursesContent() {
           code: c.code,
           title: c.title,
           description: c.description,
+          credits: c.credits,
           capacity: c.capacity,
         })
       } catch (e) {
@@ -150,7 +152,7 @@ function AdminCoursesContent() {
     try {
       await api.postJson<Course>('/courses', data, token)
       setCreateOpen(false)
-      createForm.reset({ code: '', title: '', description: '', capacity: 30 })
+      createForm.reset({ code: '', title: '', description: '', credits: 3, capacity: 30 })
       await refreshList()
     } catch (e) {
       setActionError(e instanceof Error ? e.message : 'Create failed')
@@ -256,6 +258,7 @@ function AdminCoursesContent() {
                 <TableRow>
                   <TableHead>Code</TableHead>
                   <TableHead>Title</TableHead>
+                  <TableHead className="text-right">Credits</TableHead>
                   <TableHead className="text-right">Capacity</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -265,6 +268,7 @@ function AdminCoursesContent() {
                   <TableRow key={r.id}>
                     <TableCell className="font-medium">{r.code}</TableCell>
                     <TableCell>{r.title}</TableCell>
+                    <TableCell className="text-right">{r.credits}</TableCell>
                     <TableCell className="text-right">{r.capacity}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex flex-wrap justify-end gap-2">
@@ -332,6 +336,15 @@ function AdminCoursesContent() {
               <Textarea id="create-desc" rows={4} {...createForm.register('description')} />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="create-credits">Credits</Label>
+              <Input id="create-credits" type="number" min={1} {...createForm.register('credits')} />
+              {createForm.formState.errors.credits ? (
+                <p className="text-xs text-destructive">
+                  {createForm.formState.errors.credits.message}
+                </p>
+              ) : null}
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="create-cap">Capacity</Label>
               <Input id="create-cap" type="number" min={1} {...createForm.register('capacity')} />
               {createForm.formState.errors.capacity ? (
@@ -381,6 +394,15 @@ function AdminCoursesContent() {
               <div className="space-y-2">
                 <Label htmlFor="edit-desc">Description</Label>
                 <Textarea id="edit-desc" rows={4} {...editForm.register('description')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-credits">Credits</Label>
+                <Input id="edit-credits" type="number" min={1} {...editForm.register('credits')} />
+                {editForm.formState.errors.credits ? (
+                  <p className="text-xs text-destructive">
+                    {editForm.formState.errors.credits.message}
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-cap">Capacity</Label>

@@ -63,6 +63,18 @@ function EnrollmentsContent() {
     }
   }, [loading, user, refresh])
 
+  useEffect(() => {
+    if (loading || !user || user.role !== 'student') return
+    const POLL_MS = 15_000
+    const id = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return
+      void refresh().catch(() => {
+        /* keep polling; next manual load will surface errors */
+      })
+    }, POLL_MS)
+    return () => window.clearInterval(id)
+  }, [loading, user, refresh])
+
   async function handleCancel(id: number) {
     if (!window.confirm('Cancel this enrollment?')) return
     setError(null)

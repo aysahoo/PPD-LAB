@@ -19,6 +19,7 @@ const createBody = z.object({
   code: z.string().min(1).max(32),
   title: z.string().min(1).max(200),
   description: z.string(),
+  credits: z.number().int().positive(),
   capacity: z.number().int().positive(),
 });
 
@@ -26,6 +27,7 @@ const updateBody = z.object({
   code: z.string().min(1).max(32).optional(),
   title: z.string().min(1).max(200).optional(),
   description: z.string().optional(),
+  credits: z.number().int().positive().optional(),
   capacity: z.number().int().positive().optional(),
 });
 

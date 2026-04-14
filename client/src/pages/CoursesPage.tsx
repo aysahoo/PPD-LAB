@@ -144,7 +144,9 @@ export function CoursesPage() {
                     <CardTitle>
                       {c.code} — {c.title}
                     </CardTitle>
-                    <CardDescription>Capacity {c.capacity}</CardDescription>
+                    <CardDescription>
+                      {c.credits} credits · capacity {c.capacity}
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="pt-0">
                     <span className="text-sm text-primary">View details →</span>

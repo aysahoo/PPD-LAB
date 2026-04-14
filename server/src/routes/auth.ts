@@ -2,7 +2,8 @@ import { eq } from "drizzle-orm";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 
-import { signAccessToken } from "../auth/jwt.js";
+import { signAccessToken, verifyAccessToken } from "../auth/jwt.js";
+import { revokeAccessTokenJti } from "../auth/revocation.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
 import { authenticate } from "../auth/guards.js";
 import { db } from "../db/client.js";
@@ -126,13 +127,21 @@ export async function authRoutes(app: FastifyInstance) {
     },
   );
 
-  app.post(
-    "/logout",
-    { preHandler: authenticate },
-    async (_request, reply) => {
-      return reply.send({ message: "Logged out" });
-    },
-  );
+  app.post("/logout", { preHandler: authenticate }, async (request, reply) => {
+    const header = request.headers.authorization;
+    const raw = header?.startsWith("Bearer ") ? header.slice("Bearer ".length).trim() : "";
+    if (raw) {
+      try {
+        const { jti, exp } = await verifyAccessToken(raw);
+        if (jti) {
+          await revokeAccessTokenJti(jti, new Date(exp * 1000));
+        }
+      } catch {
+        /* still return 200 so client can clear storage */
+      }
+    }
+    return reply.send({ message: "Logged out" });
+  });
 
   app.post(
     "/change-password",

@@ -14,6 +14,7 @@ export type CourseResponse = {
   code: string;
   title: string;
   description: string;
+  credits: number;
   capacity: number;
   createdAt: string;
   updatedAt: string;
@@ -26,6 +27,7 @@ function mapRow(row: typeof courses.$inferSelect, prerequisites: PrerequisiteSum
     code: row.code,
     title: row.title,
     description: row.description,
+    credits: row.credits,
     capacity: row.capacity,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -64,6 +66,7 @@ export async function createCourse(data: {
   code: string;
   title: string;
   description: string;
+  credits: number;
   capacity: number;
 }): Promise<CourseResponse> {
   const [row] = await db
@@ -72,6 +75,7 @@ export async function createCourse(data: {
       code: data.code.trim(),
       title: data.title.trim(),
       description: data.description,
+      credits: data.credits,
       capacity: data.capacity,
     })
     .returning();
@@ -81,7 +85,7 @@ export async function createCourse(data: {
 
 export async function updateCourse(
   id: number,
-  data: Partial<{ code: string; title: string; description: string; capacity: number }>,
+  data: Partial<{ code: string; title: string; description: string; credits: number; capacity: number }>,
 ): Promise<CourseResponse | null> {
   const [existing] = await db.select().from(courses).where(eq(courses.id, id)).limit(1);
   if (!existing) return null;
@@ -92,6 +96,7 @@ export async function updateCourse(
   if (data.code !== undefined) patch.code = data.code.trim();
   if (data.title !== undefined) patch.title = data.title.trim();
   if (data.description !== undefined) patch.description = data.description;
+  if (data.credits !== undefined) patch.credits = data.credits;
   if (data.capacity !== undefined) patch.capacity = data.capacity;
 
   const [row] = await db.update(courses).set(patch).where(eq(courses.id, id)).returning();

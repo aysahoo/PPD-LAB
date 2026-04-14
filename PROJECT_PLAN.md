@@ -28,7 +28,7 @@ This document is the implementation plan for a **student–administrator course 
 | UI components | **[shadcn/ui](https://ui.shadcn.com)** + **[Base UI](https://base-ui.com)** | Use the official CLI flag **`--base base`** so generated components use **Base UI** primitives (maintained by the MUI team), styled with Tailwind—**not** the default **Radix**-backed registry. Add only what you need (`npx shadcn@latest add …`). Use **lucide-react** for icons. |
 | Styling | **Tailwind CSS** | Required by shadcn; theme via CSS variables (light/dark optional). |
 | UI / data fetching | **React Router**, **TanStack Query** (optional), **fetch** or **axios** | Call the Node API with `Authorization: Bearer <jwt>` |
-| Backend | **Node.js** + **Express** or **Fastify** | REST API matching the route tables below; TypeScript recommended |
+| Backend | **Node.js** + **Fastify** | REST API matching the route tables below; TypeScript |
 | Validation | **Zod** (or Joi) | Request/response validation aligned with shared DTO shapes |
 | Database | **Neon** (PostgreSQL) | Use Neon’s connection string; enable **connection pooling** (Neon pooler or PgBouncer) for serverless / many short-lived connections |
 | DB access | **node-pg** / **postgres.js**, or **Prisma** / **Drizzle** | Migrations via Prisma Migrate, Drizzle Kit, Knex, or node-pg-migrate |
@@ -60,7 +60,7 @@ Intended request flow:
 Browser
     → React app (Vite dev server or static host)
         → HTTPS / JSON
-            → Node.js API (Express/Fastify routers)
+            → Node.js API (Fastify routers)
                 → Domain services (enrollment, capacity, prerequisites)
                     → Technical services (auth/JWT, DB, notifications)
                         → Neon (PostgreSQL)
@@ -83,7 +83,7 @@ Browser
 | Feature | Plan |
 |---------|------|
 | User registration | `POST /auth/register` creates a student user; validate email uniqueness |
-| Login & logout | `POST /auth/login`, `POST /auth/logout` (client may discard token; optional server-side denylist later) |
+| Login & logout | `POST /auth/login`, `POST /auth/logout` (client clears token; **`revoked_tokens`** table invalidates JWT `jti` until original expiry) |
 | Update profile | `PUT /students/{student_id}` with authorization so users only update self unless admin |
 | View available courses | `GET /courses`, `GET /courses/{course_id}` |
 | Select / enroll in courses | `POST /enrollments` → create pending enrollment where policy requires approval |
@@ -106,10 +106,10 @@ Browser
 
 | Feature | Plan |
 |---------|------|
-| RBAC | Middleware: `authenticate`, `requireAdmin`, `requireStudent` (or scoped permissions) on Express/Fastify routes |
+| RBAC | Fastify preHandlers: `authenticate`, `requireRole` (`student` / `admin`) |
 | JWT authentication | Issue signed JWT on login; validate on protected routes |
 | Secure password hashing | Hash at registration/password change; verify at login |
-| Real-time enrollment status | Minimum: accurate status after each action; optional push/SSE/WebSocket later |
+| Real-time enrollment status | Accurate status after each action; **My enrollments** page polls while visible; optional push/SSE/WebSocket later |
 | Database persistence | Neon PostgreSQL: tables + migrations |
 | Logging and notifications | Structured logging for audit; `notifications` table + send paths (admin/system → user) |
 
@@ -211,13 +211,17 @@ CREATE TABLE users (
 
 | Table | Purpose |
 |-------|---------|
-| `courses` | Course catalog; include `capacity`, timestamps, title, code, description |
+| `courses` | Course catalog; `capacity`, `credits`, timestamps, `code`, `title`, `description` |
 | `course_prerequisites` | Many-to-many: course → prerequisite course |
 | `enrollments` | Student–course link; `status` (e.g. pending, approved, rejected, cancelled); timestamps |
 | `notifications` | User-targeted messages; `read` flag; optional `type` |
-| Optional: `refresh_tokens` or `sessions` | If implementing server-side logout invalidation |
+| `revoked_tokens` | Server-side JWT logout: stores `jti` until token expiry (see `server/src/auth/revocation.ts`) |
 
 **Enrollment status** (define explicitly in code and DB check constraint or enum type): e.g. `PENDING`, `APPROVED`, `REJECTED`, `CANCELLED`.
+
+### 6.3 UML / report alignment
+
+For use case, class, communication, and sequence diagrams, see **[docs/UML_ALIGNMENT.md](docs/UML_ALIGNMENT.md)** (single `User` + `role`, `passwordHash`, course attributes, notifications on approve **and** reject, polling vs WebSockets).
 
 ---
 
@@ -261,9 +265,9 @@ As of **2026-04-14**, verified against the repo: **Phases 1–7** are implemente
 | Phase | Status | Summary |
 |-------|--------|---------|
 | **1** | Done | Workspaces (`client/` / `server/`), Neon + `users` migration, Fastify shell (`GET /health`, `GET /health/db`), CORS, Vite + Tailwind + shadcn (**Base UI** registry in `client/components.json`; stack table §2 still accurate) |
-| **2** | Done | `POST /auth/register`, `POST /auth/login`, `GET /auth/me`, `POST /auth/logout`, `POST /auth/change-password`; `authenticate` / `requireRole`; JWT (`jose`) + bcrypt; login/register/account UI |
-| **3** | Done | `courses`, `course_prerequisites`; public `GET /courses`, `GET /courses/:id`; admin course CRUD + prerequisites; `GET /courses/:id/students` lists users with **APPROVED** enrollment |
-| **4** | Done | `enrollments` with status constraint + unique `(user_id, course_id)`; `POST /enrollments`, `GET /enrollments` (admin), `GET /enrollments/mine`, `GET /enrollments/:id`, approve/reject/cancel; capacity + prerequisite rules server-side; student + admin enrollment UIs |
+| **2** | Done | `POST /auth/register`, `POST /auth/login`, `GET /auth/me`, `POST /auth/logout` (**JWT `jti` revocation**), `POST /auth/change-password`; `authenticate` / `requireRole`; JWT (`jose`, per-token **`jti`**) + bcrypt; login/register/account UI |
+| **3** | Done | `courses` (incl. **`credits`**), `course_prerequisites`; public `GET /courses`, `GET /courses/:id`; admin course CRUD + prerequisites; `GET /courses/:id/students` lists users with **APPROVED** enrollment |
+| **4** | Done | `enrollments` with status constraint + unique `(user_id, course_id)`; `POST /enrollments` **blocks when approved count ≥ capacity**; `GET /enrollments` (admin), `GET /enrollments/mine`, `GET /enrollments/:id`, approve/reject/cancel; capacity + prerequisite rules server-side; student + admin enrollment UIs |
 | **5** | Done | `GET /students` (admin), scoped `GET/PUT /students/:id`, `DELETE /students/:id` (admin), `GET /students/:id/enrollments`; `/admin/dashboard`, `/admin/students`, `/admin/courses`, `/admin/enrollments`, `/admin/reports/*`, `/admin/admins` CRUD; student profile on **`/account`**; admin layout under **`/admin/*`** |
 | **6** | Done | `notifications` table + Drizzle migration; `GET/POST /notifications`, `PUT /notifications/:id/read`; approve/reject emits student notifications in a **DB transaction**; `GET /students/:id/notifications` uses same data; `NotificationMenu` + Sonner; optional admin “send notification” on **`/admin/dashboard`**; Fastify **Pino** config (`LOG_LEVEL`, redact, `pino-pretty` in dev) |
 | **7** | Done | **Vitest** in `server/`: unit tests (`password`, `jwt`), `app.inject` smoke for **`GET /health`**; optional **`RUN_DB_INTEGRATION=1`** register+login test against a real DB; **`npm test`** at repo root; **OpenAPI** via `@fastify/swagger` + **`@fastify/swagger-ui`** at **`/documentation`**; **CI** — `.github/workflows/ci.yml` (lint, test, build) |
@@ -287,7 +291,7 @@ As of **2026-04-14**, verified against the repo: **Phases 1–7** are implemente
 
 | Track | Work |
 |--------|------|
-| **Repository** | `client/` (Vite + React + TypeScript), `server/` (Node + Express or Fastify + TypeScript). Root or workspace `package.json` as you prefer. |
+| **Repository** | `client/` (Vite + React + TypeScript), `server/` (Node + **Fastify** + TypeScript). Root workspace `package.json`. |
 | **Database** | Neon project; **pooled** `DATABASE_URL` in `server/.env`. First migration: `users` table (see §6.1). |
 | **Server** | App entry, config loader (`dotenv`), JSON body parser, **CORS** for Vite dev origin (`CLIENT_ORIGIN`), `GET /health` and a DB ping route. |
 | **Client** | Tailwind → `npx shadcn@latest init -t vite --base base` (or `init --base base`); add `button`, `input`, `card` to prove the pipeline. |
@@ -304,7 +308,7 @@ As of **2026-04-14**, verified against the repo: **Phases 1–7** are implemente
 | **Backend** | `POST /auth/register`, `POST /auth/login` (bcrypt/argon2 verify + JWT), `GET /auth/me`, `POST /auth/logout`, `POST /auth/change-password`. Middleware: `authenticate`, `requireRole`. |
 | **Frontend** | Login + register pages (react-hook-form + Zod + shadcn `Form`); store JWT; protected route wrapper; redirect after login; show logged-in user from `/auth/me`. |
 
-**Definition of done:** A student can register and log in; JWT is sent on protected calls; password change works; logout clears client token (and matches server contract if you add denylist later).
+**Definition of done:** A student can register and log in; JWT is sent on protected calls; password change works; logout clears the client token and **revokes the JWT server-side** (`revoked_tokens` by `jti`).
 
 ---
 
@@ -350,7 +354,7 @@ As of **2026-04-14**, verified against the repo: **Phases 1–7** are implemente
 | **Database** | `notifications` table (`user_id`, `body`, `read`, timestamps, optional `type`). |
 | **Backend** | `GET /notifications`, `POST /notifications` (restrict senders), `PUT /notifications/:id/read`. Emit notifications on enrollment approve/reject (and other events you define). |
 | **Frontend** | Notification bell or list + mark read; toasts (Sonner or shadcn) for mutation feedback. |
-| **Ops** | Structured logging (**pino**); consistent error JSON `{ message, code? }`; optional Swagger/OpenAPI for Express. |
+| **Ops** | Structured logging (**pino**); consistent error JSON `{ message, code? }`; OpenAPI via **@fastify/swagger** + UI at **`/documentation`**. |
 
 **Definition of done:** Users see notifications for enrollment decisions; logs are useful for debugging; API errors are predictable.
 
@@ -409,6 +413,7 @@ As of **2026-04-14**, verified against the repo: **Phases 1–7** are implemente
 | 1.7 | 2026-04-14 | **§8.0** re-verified against repo: Phases **1–5** done; **6** not started; **7** partial (README only); gaps listed (notifications API, tests, OpenAPI, CI); stack clarifications (JWT lib, student list route, TanStack Query optional) |
 | 1.8 | 2026-04-14 | **§8.0** Phase **6** marked **Done** (notifications API + UI + logging); Phase **7** unchanged (tests/OpenAPI/CI still open) |
 | 1.9 | 2026-04-14 | **§8.0** Phase **7** marked **Done**: Vitest, Swagger UI (`/documentation`), CI workflow; `buildApp` extracted for tests |
+| 1.10 | 2026-04-14 | Stack locked to **Fastify** in §2/§8; **`credits`** on courses; enroll-time **capacity** check; **`revoked_tokens`** + JWT **`jti`** for logout; **My enrollments** polling; **[docs/UML_ALIGNMENT.md](docs/UML_ALIGNMENT.md)** for diagram alignment |
 
 ---
 

@@ -23,7 +23,7 @@ Monorepo: **React (Vite 8) + shadcn/ui (Base UI)** in `client/`, **Node.js (Fast
 
    Edit `server/.env` and set `DATABASE_URL` to your Neon connection string (use the **pooled** URI from the Neon console). Keep `CLIENT_ORIGIN` aligned with the Vite dev server (`http://localhost:5173` by default).
 
-3. Apply database migrations (creates `users`, `courses`, `course_prerequisites`, `enrollments`, and `notifications`):
+3. Apply database migrations (creates `users`, `courses` including **`credits`**, `course_prerequisites`, `enrollments`, `notifications`, and **`revoked_tokens`** for logout):
 
    ```bash
    npm run db:migrate -w server
@@ -82,7 +82,7 @@ Phases **2–7** are implemented per `PROJECT_PLAN.md` (tests, optional OpenAPI 
 
 **Enrollments (Phase 4):**
 
-- **Students:** request enrollment from a course detail page; list and cancel from `/enrollments`. The API enforces prerequisites and duplicate rules. `GET /enrollments/mine` lists the current user’s enrollments; **`GET /students/:id/enrollments`** is also available (scoped).
+- **Students:** request enrollment from a course detail page; list and cancel from `/enrollments`. The API enforces prerequisites, duplicate rules, and **rejects new requests when approved enrollment count already meets course capacity**. The **My enrollments** page **polls** every 15s while the tab is visible. `GET /enrollments/mine` lists the current user’s enrollments; **`GET /students/:id/enrollments`** is also available (scoped).
 - **Admins:** enrollment queue and lists under **`/admin/enrollments`** (nested under **`/admin`** layout). Approve/reject: `PUT /enrollments/:id/approve|reject`. `GET /courses/:id/students` lists **approved** enrollments.
 
 **Students & admin aggregation (Phase 5):**

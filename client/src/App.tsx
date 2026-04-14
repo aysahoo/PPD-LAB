@@ -17,9 +17,11 @@ import { CoursesPage } from '@/pages/CoursesPage'
 import { HomePage } from '@/pages/HomePage'
 import { LoginPage } from '@/pages/LoginPage'
 import { RegisterPage } from '@/pages/RegisterPage'
+import { Agentation } from 'agentation'
 
 export default function App() {
   return (
+    <>
     <Routes>
       <Route path="/" element={<PublicLayout />}>
         <Route index element={<HomePage />} />
@@ -49,5 +51,14 @@ export default function App() {
         <Route path="admins" element={<AdminAdminsPage />} />
       </Route>
     </Routes>
+    {import.meta.env.DEV && (
+      <Agentation
+        endpoint="http://localhost:4747"
+        onSessionCreated={(sessionId) => {
+          console.debug('[Agentation] session:', sessionId)
+        }}
+      />
+    )}
+    </>
   )
 }

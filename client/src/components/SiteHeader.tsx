@@ -19,11 +19,14 @@ function PrimaryNav({
   onNavigate,
   className,
   showAccountLink,
+  renderAuthLinks = false,
 }: {
   onNavigate?: () => void
   className?: string
   /** Text link in slide-out menu (desktop uses header profile icon instead) */
   showAccountLink?: boolean
+  /** Guest Sign in / Register — desktop uses header end; mobile menu passes true */
+  renderAuthLinks?: boolean
 }) {
   const { user, loading } = useAuth()
 
@@ -53,7 +56,7 @@ function PrimaryNav({
           Admin
         </NavLink>
       ) : null}
-      {!loading && !user ? (
+      {renderAuthLinks && !loading && !user ? (
         <>
           <NavLink to="/login" className={navLinkClass} onClick={onNavigate}>
             Sign in
@@ -68,7 +71,7 @@ function PrimaryNav({
 }
 
 export function SiteHeader() {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
@@ -85,6 +88,27 @@ export function SiteHeader() {
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
+          {!loading && !user ? (
+            <nav
+              className="hidden items-center gap-x-4 gap-y-2 md:flex"
+              aria-label="Authentication"
+            >
+              <NavLink
+                to="/login"
+                className={navLinkClass}
+                onClick={() => setMobileOpen(false)}
+              >
+                Sign in
+              </NavLink>
+              <NavLink
+                to="/register"
+                className={navLinkClass}
+                onClick={() => setMobileOpen(false)}
+              >
+                Register
+              </NavLink>
+            </nav>
+          ) : null}
           {user ? (
             <>
               <NotificationMenu />
@@ -123,6 +147,7 @@ export function SiteHeader() {
                 </DialogHeader>
                 <PrimaryNav
                   showAccountLink
+                  renderAuthLinks
                   className="flex-col items-stretch gap-1 pt-2 [&_a]:rounded-md [&_a]:px-2 [&_a]:py-2.5"
                   onNavigate={() => setMobileOpen(false)}
                 />

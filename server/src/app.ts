@@ -89,8 +89,9 @@ export async function buildApp(options: BuildAppOptions = {}) {
     try {
       await pool.query("SELECT 1");
       return { status: "ok", database: "connected" };
-    } catch (err) {
-      app.log.error(err);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      app.log.error({ err: message }, "database health check failed");
       return reply.code(503).send({
         status: "error",
         database: "disconnected",

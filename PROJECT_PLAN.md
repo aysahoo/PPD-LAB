@@ -72,7 +72,7 @@ Browser
 - **API routes** stay thin: validate input (Zod), call services, return JSON; map errors to HTTP status codes.
 - **Domain services** own rules: e.g. “cannot enroll if course full,” “prerequisite not satisfied,” “only admin can approve.”
 - **Repositories / DB layer** isolate SQL; types shared or duplicated between backend and optional `packages/shared` for DTOs.
-- **CORS**: Allow the React dev origin (e.g. `http://localhost:5173`) and production frontend URL via `CLIENT_ORIGIN`.
+- **CORS**: Allow the React dev origin(s) (e.g. `http://localhost:5173`) and production frontend URL(s) via `CLIENT_ORIGIN` — use a comma-separated list when several Vite apps (e.g. `5173`, `5174`, `5175`) share one API.
 
 ---
 

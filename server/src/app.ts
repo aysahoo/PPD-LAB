@@ -3,6 +3,7 @@ import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import Fastify, { type FastifyServerOptions } from "fastify";
 
+import { createCorsOriginCallback } from "./cors-origin.js";
 import { pool } from "./db/pool.js";
 import { env } from "./env.js";
 import { authRoutes } from "./routes/auth.js";
@@ -79,8 +80,11 @@ export async function buildApp(options: BuildAppOptions = {}) {
   }
 
   await app.register(cors, {
-    origin: env.CLIENT_ORIGIN,
+    origin: createCorsOriginCallback(env),
     credentials: true,
+    // Default @fastify/cors methods are only GET,HEAD,POST — REST routes use PUT/DELETE/PATCH.
+    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   });
 
   app.get("/health", async () => ({ status: "ok" }));

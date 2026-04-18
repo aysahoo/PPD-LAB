@@ -1,6 +1,6 @@
 # PPD Lab — course enrollment system
 
-Monorepo: **React (Vite 8) + shadcn/ui (Base UI)** in `client/`, **Node.js (Fastify) + Drizzle + PostgreSQL (Neon)** in `server/`. See [PROJECT_PLAN.md](./PROJECT_PLAN.md) for full scope.
+Monorepo: **three parallel React (Vite 8) + shadcn/ui (Base UI)** apps in `client/`, `client-b/`, and `client-c/` (ports **5173**, **5174**, **5175**), plus **Node.js (Fastify) + Drizzle + PostgreSQL (Neon)** in `server/`. See [PROJECT_PLAN.md](./PROJECT_PLAN.md) for full scope.
 
 ## Prerequisites
 
@@ -21,7 +21,9 @@ Monorepo: **React (Vite 8) + shadcn/ui (Base UI)** in `client/`, **Node.js (Fast
    cp server/.env.example server/.env
    ```
 
-   Edit `server/.env` and set `DATABASE_URL` to your Neon connection string (use the **pooled** URI from the Neon console). Keep `CLIENT_ORIGIN` aligned with the Vite dev server (`http://localhost:5173` by default).
+   Edit `server/.env` and set `DATABASE_URL` to your Neon connection string (use the **pooled** URI from the Neon console). Set **`CLIENT_ORIGIN`** to the browser origin(s) allowed for credentialed CORS. Use a **comma-separated list** if more than one Vite app runs against the same API, for example:  
+   `CLIENT_ORIGIN=http://localhost:5173,http://localhost:5174,http://localhost:5175`  
+   For a single app, `http://localhost:5173` is enough.
 
 3. Apply database migrations (creates `users`, `courses` including **`credits`**, `course_prerequisites`, `enrollments`, `notifications`, and **`revoked_tokens`** for logout):
 
@@ -43,20 +45,21 @@ From the repository root:
 npm run dev
 ```
 
-This starts:
+This starts **`client`** (port 5173) and the **server**. To run another UI workspace, use a second terminal, e.g. `npm run dev -w client-b` ([http://localhost:5174](http://localhost:5174)) or `npm run dev -w client-c` ([http://localhost:5175](http://localhost:5175)), and include every active origin in `CLIENT_ORIGIN` as above. To start **all three clients plus the server** in one command: `npm run dev:all`.
 
-- **Client:** [http://localhost:5173](http://localhost:5173) — Vite + React + shadcn (Base UI)
+- **Clients:** `client` [http://localhost:5173](http://localhost:5173), `client-b` [http://localhost:5174](http://localhost:5174), `client-c` [http://localhost:5175](http://localhost:5175) — Vite + React + shadcn (Base UI)
 - **Server:** [http://localhost:3000](http://localhost:3000) — `GET /health`, `GET /health/db`, OpenAPI UI at **`/documentation`** (Swagger UI for the live API)
 
 ### Scripts
 
 | Command | Description |
 |--------|-------------|
-| `npm run dev` | Run client and server together |
-| `npm run build` | Build client and server |
+| `npm run dev` | Run `client` and server together |
+| `npm run dev:all` | Run `client`, `client-b`, `client-c`, and server together |
+| `npm run build` | Build all three clients and the server |
 | `npm test` | Run server Vitest suite (unit + HTTP smoke; no DB required) |
 | `npm run test:coverage -w server` | Vitest with V8 coverage report |
-| `npm run dev -w client` | Vite dev server only |
+| `npm run dev -w client` | Vite dev server only (`client-b` / `client-c` likewise) |
 | `npm run dev -w server` | API only (`tsx watch`) |
 | `npm run db:generate -w server` | Generate a new Drizzle migration from `src/db/schema.ts` |
 | `npm run db:migrate -w server` | Apply migrations to the database in `DATABASE_URL` |
@@ -78,7 +81,7 @@ Phases **2–7** are implemented per `PROJECT_PLAN.md` (tests, optional OpenAPI 
   `RUN_DB_INTEGRATION=1 npm run test -w server`  
   to also run register + login against the real `DATABASE_URL`.
 - **OpenAPI:** Swagger UI at **`http://localhost:3000/documentation`** when the API is running (routes without Fastify JSON schemas appear with limited detail; see [Fastify Swagger](https://github.com/fastify/fastify-swagger)).
-- **CI:** [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs client lint, server tests, and production build on push/PR to `main`/`master`.
+- **CI:** [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs lint in workspaces that define `lint`, server tests, and production build on push/PR to `main`/`master`.
 
 **Enrollments (Phase 4):**
 

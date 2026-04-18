@@ -7,6 +7,8 @@ export type User = {
   aadhaarNumber: string | null;
   /** Positive integer rank when set. */
   studentRank: number | null;
+  aadhaarPdfUploaded: boolean;
+  rankPdfUploaded: boolean;
   role: "student" | "admin";
   isActive: boolean;
   profileComplete: boolean;

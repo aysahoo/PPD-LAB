@@ -23,6 +23,10 @@ export const users = pgTable(
     aadhaarNumber: varchar("aadhaar_number", { length: 12 }),
     /** Entrance or qualifying exam rank (positive integer). */
     studentRank: integer("student_rank"),
+    /** Relative path under UPLOAD_DIR for uploaded Aadhaar PDF (local dev storage). */
+    aadhaarPdfRelpath: varchar("aadhaar_pdf_relpath", { length: 512 }),
+    /** Relative path under UPLOAD_DIR for uploaded rank certificate PDF. */
+    rankPdfRelpath: varchar("rank_pdf_relpath", { length: 512 }),
     passwordHash: text("password_hash").notNull(),
     role: varchar("role", { length: 20 }).notNull(),
     isActive: boolean("is_active").default(true),

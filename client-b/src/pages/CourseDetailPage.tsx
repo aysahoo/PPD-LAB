@@ -30,6 +30,8 @@ function studentProfileIncompleteHint(user: {
   phone: string | null
   aadhaarNumber: string | null
   studentRank: number | null
+  aadhaarPdfUploaded: boolean
+  rankPdfUploaded: boolean
 }): string {
   const missing: string[] = []
   if ((user.name?.trim() ?? '').length === 0) missing.push('name')
@@ -39,6 +41,8 @@ function studentProfileIncompleteHint(user: {
   if (user.studentRank == null || !Number.isFinite(user.studentRank) || user.studentRank <= 0) {
     missing.push('rank')
   }
+  if (!user.aadhaarPdfUploaded) missing.push('Aadhaar PDF')
+  if (!user.rankPdfUploaded) missing.push('rank PDF')
   if (missing.length === 0) return 'Complete your profile'
   return `Add ${missing.join(', ')}`
 }

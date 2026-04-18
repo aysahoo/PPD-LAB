@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Button, Card, Stack, Text, TextInput } from '@mantine/core'
+import { Button, Card, FileInput, Group, Stack, Text, TextInput } from '@mantine/core'
 import { z } from 'zod'
 
 import { Breadcrumbs } from '@/components/Breadcrumbs'
@@ -57,6 +57,10 @@ type PasswordValues = z.infer<typeof passwordSchema>
 
 function AccountContent() {
   const { user, logout, refreshUser } = useAuth()
+  const [docError, setDocError] = useState<string | null>(null)
+  const [aadhaarUploading, setAadhaarUploading] = useState(false)
+  const [rankUploading, setRankUploading] = useState(false)
+  const [viewingDoc, setViewingDoc] = useState<null | 'aadhaar' | 'rank'>(null)
 
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -146,6 +150,62 @@ function AccountContent() {
     }
   })
 
+  async function uploadAadhaarPdf(file: File) {
+    const token = storage.getToken()
+    if (!token || !user || user.role !== 'student') return
+    setDocError(null)
+    setAadhaarUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      await api.postFormData(`/students/${user.id}/documents/aadhaar`, fd, token)
+      await refreshUser()
+    } catch (e) {
+      setDocError(e instanceof Error ? e.message : 'Could not upload Aadhaar PDF')
+    } finally {
+      setAadhaarUploading(false)
+    }
+  }
+
+  async function uploadRankPdf(file: File) {
+    const token = storage.getToken()
+    if (!token || !user || user.role !== 'student') return
+    setDocError(null)
+    setRankUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      await api.postFormData(`/students/${user.id}/documents/rank`, fd, token)
+      await refreshUser()
+    } catch (e) {
+      setDocError(e instanceof Error ? e.message : 'Could not upload rank PDF')
+    } finally {
+      setRankUploading(false)
+    }
+  }
+
+  async function viewPdf(kind: 'aadhaar' | 'rank') {
+    const token = storage.getToken()
+    if (!token || !user || user.role !== 'student') return
+    setDocError(null)
+    setViewingDoc(kind)
+    try {
+      const blob = await api.getBlob(`/students/${user.id}/documents/${kind}`, token)
+      const url = URL.createObjectURL(blob)
+      const win = window.open(url, '_blank', 'noopener,noreferrer')
+      if (!win) {
+        URL.revokeObjectURL(url)
+        setDocError('Popup blocked — allow popups for this site to view the PDF.')
+        return
+      }
+      window.setTimeout(() => URL.revokeObjectURL(url), 10 * 60 * 1000)
+    } catch (e) {
+      setDocError(e instanceof Error ? e.message : 'Could not open PDF')
+    } finally {
+      setViewingDoc(null)
+    }
+  }
+
   if (!user) {
     return null
   }
@@ -157,7 +217,7 @@ function AccountContent() {
         title="Account"
         description={
           user.role === 'student'
-            ? 'Update your profile — name, email, phone, Aadhaar, and rank are required before enrolling.'
+            ? 'Update your profile — name, email, phone, Aadhaar, rank, and Aadhaar and rank PDFs are required before enrolling.'
             : 'Administrator — edit admin users under Admin → Admins.'
         }
       />
@@ -223,6 +283,91 @@ function AccountContent() {
               </Button>
             </Stack>
           </form>
+        </Card>
+      ) : null}
+
+      {user.role === 'student' ? (
+        <Card withBorder shadow="sm" padding="lg">
+          <Stack gap="md">
+            <Stack gap="xs">
+              <Text fw={600}>Documents</Text>
+              <Text size="sm" c="dimmed">
+                Upload PDF copies of your Aadhaar and rank certificate (required for enrollment).
+              </Text>
+            </Stack>
+            <Stack gap="xs">
+              <Text size="sm" fw={500}>
+                Aadhaar PDF
+              </Text>
+              <Text size="xs" c="dimmed">
+                {user.aadhaarPdfUploaded ? 'Uploaded' : 'Not uploaded'}
+              </Text>
+              <Group align="flex-end" wrap="wrap" gap="sm">
+                {user.aadhaarPdfUploaded ? (
+                  <Button
+                    type="button"
+                    variant="light"
+                    size="sm"
+                    loading={viewingDoc === 'aadhaar'}
+                    disabled={viewingDoc !== null || aadhaarUploading}
+                    onClick={() => void viewPdf('aadhaar')}
+                  >
+                    View PDF
+                  </Button>
+                ) : null}
+                <FileInput
+                  placeholder="Choose file"
+                  accept="application/pdf"
+                  disabled={aadhaarUploading}
+                  style={{ flex: '1 1 200px' }}
+                  onChange={(f) => {
+                    if (f) void uploadAadhaarPdf(f)
+                  }}
+                />
+              </Group>
+            </Stack>
+            <Stack gap="xs">
+              <Text size="sm" fw={500}>
+                Rank PDF
+              </Text>
+              <Text size="xs" c="dimmed">
+                {user.rankPdfUploaded ? 'Uploaded' : 'Not uploaded'}
+              </Text>
+              <Group align="flex-end" wrap="wrap" gap="sm">
+                {user.rankPdfUploaded ? (
+                  <Button
+                    type="button"
+                    variant="light"
+                    size="sm"
+                    loading={viewingDoc === 'rank'}
+                    disabled={viewingDoc !== null || rankUploading}
+                    onClick={() => void viewPdf('rank')}
+                  >
+                    View PDF
+                  </Button>
+                ) : null}
+                <FileInput
+                  placeholder="Choose file"
+                  accept="application/pdf"
+                  disabled={rankUploading}
+                  style={{ flex: '1 1 200px' }}
+                  onChange={(f) => {
+                    if (f) void uploadRankPdf(f)
+                  }}
+                />
+              </Group>
+            </Stack>
+            {docError ? (
+              <Text size="sm" c="red">
+                {docError}
+              </Text>
+            ) : null}
+            {aadhaarUploading || rankUploading ? (
+              <Text size="sm" c="dimmed">
+                Uploading…
+              </Text>
+            ) : null}
+          </Stack>
         </Card>
       ) : null}
 

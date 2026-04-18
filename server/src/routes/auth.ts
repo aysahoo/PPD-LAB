@@ -38,6 +38,8 @@ function mapUser(row: typeof users.$inferSelect) {
       row.phone,
       row.aadhaarNumber,
       row.studentRank,
+      row.aadhaarPdfRelpath,
+      row.rankPdfRelpath,
     );
   return {
     id: row.id,
@@ -46,6 +48,8 @@ function mapUser(row: typeof users.$inferSelect) {
     phone: row.phone,
     aadhaarNumber: row.aadhaarNumber,
     studentRank: row.studentRank,
+    aadhaarPdfUploaded: Boolean(row.aadhaarPdfRelpath?.trim()),
+    rankPdfUploaded: Boolean(row.rankPdfRelpath?.trim()),
     role,
     isActive: row.isActive ?? true,
     profileComplete,

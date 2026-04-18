@@ -184,6 +184,8 @@ export async function createOrRequestEnrollment(
       actor.phone,
       actor.aadhaarNumber,
       actor.studentRank,
+      actor.aadhaarPdfRelpath,
+      actor.rankPdfRelpath,
     )
   ) {
     return { ok: false, reason: "profile_incomplete" };

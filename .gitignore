@@ -7,3 +7,4 @@ dist
 server/.env
 coverage
 server/coverage
+server/data/uploads

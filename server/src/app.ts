@@ -1,4 +1,5 @@
 import cors from "@fastify/cors";
+import multipart from "@fastify/multipart";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import Fastify, { type FastifyServerOptions } from "fastify";
@@ -11,6 +12,7 @@ import { coursesRoutes } from "./routes/courses.js";
 import { adminRoutes } from "./routes/admin.js";
 import { enrollmentsRoutes } from "./routes/enrollments.js";
 import { notificationsRoutes } from "./routes/notifications.js";
+import { studentDocumentRoutes } from "./routes/student-documents.js";
 import { studentsRoutes } from "./routes/students.js";
 
 function buildLoggerOptions() {
@@ -87,6 +89,11 @@ export async function buildApp(options: BuildAppOptions = {}) {
     allowedHeaders: ["Content-Type", "Authorization"],
   });
 
+  await app.register(multipart, {
+    limits: { fileSize: 5 * 1024 * 1024 },
+    throwFileSizeLimit: true,
+  });
+
   app.get("/health", async () => ({ status: "ok" }));
 
   app.get("/health/db", async (_req, reply) => {
@@ -108,6 +115,7 @@ export async function buildApp(options: BuildAppOptions = {}) {
   await app.register(enrollmentsRoutes, { prefix: "/enrollments" });
   await app.register(notificationsRoutes, { prefix: "/notifications" });
   await app.register(studentsRoutes, { prefix: "/students" });
+  await app.register(studentDocumentRoutes, { prefix: "/students" });
   await app.register(adminRoutes, { prefix: "/admin" });
 
   return app;

@@ -67,7 +67,7 @@ export async function enrollmentsRoutes(app: FastifyInstance) {
       if (result.reason === "profile_incomplete") {
         return reply.code(400).send({
           message:
-            "Complete your profile (name, phone, 12-digit Aadhaar, and rank) on your account page before requesting enrollment.",
+            "Complete your profile (name, phone, 12-digit Aadhaar, rank, and Aadhaar and rank PDFs) on your account page before requesting enrollment.",
         });
       }
       if (result.reason === "already_pending_or_approved") {

@@ -8,12 +8,31 @@ async function parseJson<T>(res: Response): Promise<T> {
   return JSON.parse(text) as T;
 }
 
+async function fetchAuthorizedBlob(path: string, token: string): Promise<Blob> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    let msg = res.statusText || "Request failed";
+    try {
+      const data = JSON.parse(text) as ApiErrorBody;
+      if (typeof data.message === "string") msg = data.message;
+    } catch {
+      if (text) msg = text.slice(0, 200);
+    }
+    throw new Error(msg);
+  }
+  return res.blob();
+}
+
 export async function apiRequest<T>(
   path: string,
   init?: RequestInit & { token?: string | null },
 ): Promise<T> {
   const headers = new Headers(init?.headers);
-  if (init?.body !== undefined) {
+  if (init?.body !== undefined && !(init.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
   const token = init?.token;
@@ -56,4 +75,13 @@ export const api = {
 
   delete: <T>(path: string, token: string) =>
     apiRequest<T>(path, { method: "DELETE", token }),
+
+  postFormData: <T>(path: string, formData: FormData, token: string) =>
+    apiRequest<T>(path, {
+      method: "POST",
+      body: formData,
+      token,
+    }),
+
+  getBlob: (path: string, token: string) => fetchAuthorizedBlob(path, token),
 };

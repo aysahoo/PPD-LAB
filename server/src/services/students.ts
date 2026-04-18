@@ -12,6 +12,8 @@ export type StudentResponse = {
   phone: string | null;
   aadhaarNumber: string | null;
   studentRank: number | null;
+  aadhaarPdfUploaded: boolean;
+  rankPdfUploaded: boolean;
   role: "student" | "admin";
   isActive: boolean;
 };
@@ -24,6 +26,8 @@ export function mapStudent(row: typeof users.$inferSelect): StudentResponse {
     phone: row.phone,
     aadhaarNumber: row.aadhaarNumber,
     studentRank: row.studentRank,
+    aadhaarPdfUploaded: Boolean(row.aadhaarPdfRelpath?.trim()),
+    rankPdfUploaded: Boolean(row.rankPdfRelpath?.trim()),
     role: row.role as "student" | "admin",
     isActive: row.isActive ?? true,
   };

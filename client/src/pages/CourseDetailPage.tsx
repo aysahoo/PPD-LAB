@@ -21,6 +21,25 @@ import * as storage from '@/lib/auth-storage'
 import type { Course } from '@/types/course'
 import type { Enrollment } from '@/types/enrollment'
 
+/** Matches server enrollment profile rules — lists what is still missing. */
+function studentProfileIncompleteHint(user: {
+  name: string | null
+  phone: string | null
+  aadhaarNumber: string | null
+  studentRank: number | null
+}): string {
+  const missing: string[] = []
+  if ((user.name?.trim() ?? '').length === 0) missing.push('name')
+  if ((user.phone?.trim() ?? '').length === 0) missing.push('phone')
+  const aadhaarDigits = (user.aadhaarNumber ?? '').replace(/\D/g, '')
+  if (aadhaarDigits.length !== 12) missing.push('12-digit Aadhaar')
+  if (user.studentRank == null || !Number.isFinite(user.studentRank) || user.studentRank <= 0) {
+    missing.push('rank')
+  }
+  if (missing.length === 0) return 'Complete your profile'
+  return `Add ${missing.join(', ')}`
+}
+
 export function CourseDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { user, loading: authLoading } = useAuth()
@@ -204,6 +223,53 @@ export function CourseDetailPage() {
                 <p className="text-sm text-muted-foreground">
                   Administrators manage enrollments from the admin area.
                 </p>
+              ) : user.role === 'student' && !user.profileComplete ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    {studentProfileIncompleteHint(user)} on{' '}
+                    <Link to="/account" className="text-primary underline-offset-4 hover:underline">
+                      Account
+                    </Link>{' '}
+                    before you can request enrollment.
+                  </p>
+                  {mine === null ? (
+                    <p className="text-sm text-muted-foreground">Loading enrollment status…</p>
+                  ) : (
+                    <>
+                      {myEnrollment ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm">Your status:</span>
+                          <Badge
+                            variant={
+                              myEnrollment.status === 'APPROVED'
+                                ? 'default'
+                                : myEnrollment.status === 'PENDING'
+                                  ? 'secondary'
+                                  : myEnrollment.status === 'REJECTED'
+                                    ? 'destructive'
+                                    : 'outline'
+                            }
+                          >
+                            {myEnrollment.status}
+                          </Badge>
+                        </div>
+                      ) : null}
+                      {myEnrollment &&
+                      (myEnrollment.status === 'PENDING' || myEnrollment.status === 'APPROVED') ? (
+                        <p className="text-xs text-muted-foreground">
+                          To cancel, use{' '}
+                          <Link
+                            to="/enrollments"
+                            className="text-primary underline-offset-4 hover:underline"
+                          >
+                            My enrollments
+                          </Link>
+                          .
+                        </p>
+                      ) : null}
+                    </>
+                  )}
+                </div>
               ) : mine === null ? (
                 <p className="text-sm text-muted-foreground">Loading enrollment status…</p>
               ) : (

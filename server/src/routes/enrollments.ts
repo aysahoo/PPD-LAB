@@ -64,6 +64,12 @@ export async function enrollmentsRoutes(app: FastifyInstance) {
           message: "Prerequisites not satisfied — complete required courses first.",
         });
       }
+      if (result.reason === "profile_incomplete") {
+        return reply.code(400).send({
+          message:
+            "Complete your profile (name, phone, 12-digit Aadhaar, and rank) on your account page before requesting enrollment.",
+        });
+      }
       if (result.reason === "already_pending_or_approved") {
         return reply.code(409).send({ message: "Already enrolled or pending approval" });
       }

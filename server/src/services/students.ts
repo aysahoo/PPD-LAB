@@ -10,6 +10,8 @@ export type StudentResponse = {
   name: string | null;
   email: string;
   phone: string | null;
+  aadhaarNumber: string | null;
+  studentRank: number | null;
   role: "student" | "admin";
   isActive: boolean;
 };
@@ -20,6 +22,8 @@ export function mapStudent(row: typeof users.$inferSelect): StudentResponse {
     name: row.name,
     email: row.email,
     phone: row.phone,
+    aadhaarNumber: row.aadhaarNumber,
+    studentRank: row.studentRank,
     role: row.role as "student" | "admin",
     isActive: row.isActive ?? true,
   };
@@ -42,7 +46,13 @@ export async function getUserById(id: number): Promise<typeof users.$inferSelect
 
 export async function updateStudentProfile(
   id: number,
-  data: Partial<{ name: string | null; phone: string | null; email: string }>,
+  data: Partial<{
+    name: string | null;
+    phone: string | null;
+    email: string;
+    aadhaarNumber: string | null;
+    studentRank: number | null;
+  }>,
 ): Promise<StudentResponse | null> {
   const [existing] = await db.select().from(users).where(eq(users.id, id)).limit(1);
   if (!existing || existing.role !== "student") {
@@ -53,6 +63,8 @@ export async function updateStudentProfile(
   if (data.name !== undefined) patch.name = data.name;
   if (data.phone !== undefined) patch.phone = data.phone;
   if (data.email !== undefined) patch.email = data.email;
+  if (data.aadhaarNumber !== undefined) patch.aadhaarNumber = data.aadhaarNumber;
+  if (data.studentRank !== undefined) patch.studentRank = data.studentRank;
 
   const [row] = await db.update(users).set(patch).where(eq(users.id, id)).returning();
   return row ? mapStudent(row) : null;

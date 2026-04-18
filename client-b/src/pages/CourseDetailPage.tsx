@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Anchor, Badge, Button, Card, Group, Skeleton, Stack, Text } from '@mantine/core'
+import { Alert, Anchor, Badge, Button, Card, Group, Skeleton, Stack, Text } from '@mantine/core'
 import { Link, useParams } from 'react-router-dom'
 
 import { Breadcrumbs } from '@/components/Breadcrumbs'
@@ -22,6 +22,25 @@ function enrollmentBadgeColor(s: Enrollment['status']) {
     default:
       return 'gray'
   }
+}
+
+/** Matches server enrollment profile rules — lists what is still missing. */
+function studentProfileIncompleteHint(user: {
+  name: string | null
+  phone: string | null
+  aadhaarNumber: string | null
+  studentRank: number | null
+}): string {
+  const missing: string[] = []
+  if ((user.name?.trim() ?? '').length === 0) missing.push('name')
+  if ((user.phone?.trim() ?? '').length === 0) missing.push('phone')
+  const aadhaarDigits = (user.aadhaarNumber ?? '').replace(/\D/g, '')
+  if (aadhaarDigits.length !== 12) missing.push('12-digit Aadhaar')
+  if (user.studentRank == null || !Number.isFinite(user.studentRank) || user.studentRank <= 0) {
+    missing.push('rank')
+  }
+  if (missing.length === 0) return 'Complete your profile'
+  return `Add ${missing.join(', ')}`
 }
 
 export function CourseDetailPage() {
@@ -212,6 +231,42 @@ export function CourseDetailPage() {
                 <Text size="sm" c="dimmed">
                   Administrators manage enrollments from the admin area.
                 </Text>
+              ) : user.role === 'student' && !user.profileComplete ? (
+                <Stack gap="sm">
+                  <Alert color="yellow" title="Complete your profile">
+                    {studentProfileIncompleteHint(user)} on{' '}
+                    <Anchor component={Link} to="/account" size="sm">
+                      Account
+                    </Anchor>{' '}
+                    before you can request enrollment.
+                  </Alert>
+                  {mine === null ? (
+                    <Text size="sm" c="dimmed">
+                      Loading enrollment status…
+                    </Text>
+                  ) : (
+                    <>
+                      {myEnrollment ? (
+                        <Group gap="sm">
+                          <Text size="sm">Your status:</Text>
+                          <Badge color={enrollmentBadgeColor(myEnrollment.status)}>
+                            {myEnrollment.status}
+                          </Badge>
+                        </Group>
+                      ) : null}
+                      {myEnrollment &&
+                      (myEnrollment.status === 'PENDING' || myEnrollment.status === 'APPROVED') ? (
+                        <Text size="xs" c="dimmed">
+                          To cancel, use{' '}
+                          <Anchor component={Link} to="/enrollments" size="xs">
+                            My enrollments
+                          </Anchor>
+                          .
+                        </Text>
+                      ) : null}
+                    </>
+                  )}
+                </Stack>
               ) : mine === null ? (
                 <Text size="sm" c="dimmed">
                   Loading enrollment status…

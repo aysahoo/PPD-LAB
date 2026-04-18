@@ -1,7 +1,6 @@
 import { Box, Container } from '@mui/material'
 import { Outlet } from 'react-router-dom'
 
-import { SiteFooter } from '@/components/SiteFooter'
 import { SiteHeader } from '@/components/SiteHeader'
 import { SkipToContent } from '@/components/SkipToContent'
 
@@ -37,7 +36,6 @@ export function PublicLayout() {
           <Outlet />
         </Box>
       </Container>
-      <SiteFooter />
     </Box>
   )
 }

@@ -7,6 +7,7 @@ import {
   enrollments,
   users,
 } from "../db/schema.js";
+import { isStudentProfileComplete } from "../lib/student-profile.js";
 import { insertNotification } from "./notifications.js";
 
 export const enrollmentStatuses = [
@@ -160,7 +161,8 @@ export type CreateEnrollmentResult =
         | "prerequisites_not_met"
         | "already_pending_or_approved"
         | "at_capacity_enroll"
-        | "forbidden";
+        | "forbidden"
+        | "profile_incomplete";
     };
 
 export async function createOrRequestEnrollment(
@@ -170,6 +172,21 @@ export async function createOrRequestEnrollment(
 ): Promise<CreateEnrollmentResult> {
   if (userRole !== "student") {
     return { ok: false, reason: "forbidden" };
+  }
+
+  const [actor] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  if (!actor) {
+    return { ok: false, reason: "forbidden" };
+  }
+  if (
+    !isStudentProfileComplete(
+      actor.name,
+      actor.phone,
+      actor.aadhaarNumber,
+      actor.studentRank,
+    )
+  ) {
+    return { ok: false, reason: "profile_incomplete" };
   }
 
   const [course] = await db.select().from(courses).where(eq(courses.id, courseId)).limit(1);

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link as RouterLink, useParams } from 'react-router-dom'
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -21,6 +22,25 @@ import { api } from '@/lib/api'
 import * as storage from '@/lib/auth-storage'
 import type { Course } from '@/types/course'
 import type { Enrollment } from '@/types/enrollment'
+
+/** Matches server enrollment profile rules — lists what is still missing. */
+function studentProfileIncompleteHint(user: {
+  name: string | null
+  phone: string | null
+  aadhaarNumber: string | null
+  studentRank: number | null
+}): string {
+  const missing: string[] = []
+  if ((user.name?.trim() ?? '').length === 0) missing.push('name')
+  if ((user.phone?.trim() ?? '').length === 0) missing.push('phone')
+  const aadhaarDigits = (user.aadhaarNumber ?? '').replace(/\D/g, '')
+  if (aadhaarDigits.length !== 12) missing.push('12-digit Aadhaar')
+  if (user.studentRank == null || !Number.isFinite(user.studentRank) || user.studentRank <= 0) {
+    missing.push('rank')
+  }
+  if (missing.length === 0) return 'Complete your profile'
+  return `Add ${missing.join(', ')}`
+}
 
 function statusChipColor(
   s: Enrollment['status'],
@@ -212,6 +232,44 @@ export function CourseDetailPage() {
                   <Typography variant="body2" color="text.secondary">
                     Administrators manage enrollments from the admin area.
                   </Typography>
+                ) : user.role === 'student' && !user.profileComplete ? (
+                  <Stack spacing={2}>
+                    <Alert severity="warning">
+                      {studentProfileIncompleteHint(user)} on{' '}
+                      <Link component={RouterLink} to="/account" underline="hover">
+                        Account
+                      </Link>{' '}
+                      before you can request enrollment.
+                    </Alert>
+                    {mine === null ? (
+                      <Typography variant="body2" color="text.secondary">
+                        Loading enrollment status…
+                      </Typography>
+                    ) : (
+                      <>
+                        {myEnrollment ? (
+                          <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
+                            <Typography variant="body2">Your status:</Typography>
+                            <Chip
+                              label={myEnrollment.status}
+                              size="small"
+                              color={statusChipColor(myEnrollment.status)}
+                            />
+                          </Stack>
+                        ) : null}
+                        {myEnrollment &&
+                        (myEnrollment.status === 'PENDING' || myEnrollment.status === 'APPROVED') ? (
+                          <Typography variant="caption" color="text.secondary">
+                            To cancel, use{' '}
+                            <Link component={RouterLink} to="/enrollments" underline="hover">
+                              My enrollments
+                            </Link>
+                            .
+                          </Typography>
+                        ) : null}
+                      </>
+                    )}
+                  </Stack>
                 ) : mine === null ? (
                   <Typography variant="body2" color="text.secondary">
                     Loading enrollment status…

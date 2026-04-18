@@ -2,7 +2,6 @@ import { NavLink, Outlet } from 'react-router-dom'
 
 import { BrandLink } from '@/components/BrandLink'
 import { NotificationMenu } from '@/components/NotificationMenu'
-import { SiteFooter } from '@/components/SiteFooter'
 import { SkipToContent } from '@/components/SkipToContent'
 import { navLinkClass, shellInnerRow } from '@/lib/layout'
 import { cn } from '@/lib/utils'
@@ -48,7 +47,6 @@ export function AdminLayout() {
       <main id="main-content" className="flex flex-1 flex-col" tabIndex={-1}>
         <Outlet />
       </main>
-      <SiteFooter />
     </div>
   )
 }

@@ -3,8 +3,13 @@ export type User = {
   name: string | null;
   email: string;
   phone: string | null;
+  /** Normalized 12 digits when set (from `/auth/me`). */
+  aadhaarNumber: string | null;
+  /** Positive integer rank when set. */
+  studentRank: number | null;
   role: "student" | "admin";
   isActive: boolean;
+  profileComplete: boolean;
 };
 
 export type RegisterInput = {

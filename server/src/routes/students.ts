@@ -18,6 +18,20 @@ const putBody = z.object({
   name: z.string().max(100).nullable().optional(),
   phone: z.string().max(20).nullable().optional(),
   email: z.string().email().optional(),
+  aadhaarNumber: z
+    .union([z.string(), z.null()])
+    .optional()
+    .transform((val): string | null | undefined => {
+      if (val === undefined) return undefined;
+      if (val === null) return null;
+      const d = val.replace(/\D/g, "");
+      return d === "" ? null : d;
+    })
+    .refine(
+      (d) => d === undefined || d === null || /^\d{12}$/.test(d),
+      { message: "Aadhaar must be exactly 12 digits" },
+    ),
+  studentRank: z.union([z.number().int().positive(), z.null()]).optional(),
 });
 
 function parseBody<T>(schema: z.ZodType<T>, body: unknown) {

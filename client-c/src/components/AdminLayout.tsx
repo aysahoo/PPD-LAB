@@ -3,7 +3,6 @@ import { Box, Container, Paper, Stack, Typography, useTheme } from '@mui/materia
 
 import { BrandLink } from '@/components/BrandLink'
 import { NotificationMenu } from '@/components/NotificationMenu'
-import { SiteFooter } from '@/components/SiteFooter'
 import { SkipToContent } from '@/components/SkipToContent'
 
 function AdminNavLink({ to, children }: { to: string; children: string }) {
@@ -120,7 +119,6 @@ export function AdminLayout() {
           <Outlet />
         </Box>
       </Container>
-      <SiteFooter />
     </Box>
   )
 }

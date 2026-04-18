@@ -21,13 +21,40 @@ import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
 import * as storage from "@/lib/auth-storage";
 
+const phoneFieldSchema = z
+  .string()
+  .max(20, "Use at most 20 characters")
+  .refine(
+    (s) => {
+      const v = s.trim();
+      if (v === "") return true;
+      if (!/^[\d\s+().-]+$/.test(v)) return false;
+      const digits = v.replace(/\D/g, "");
+      return digits.length >= 7 && digits.length <= 15;
+    },
+    { message: "Enter a valid phone number (7–15 digits)." },
+  );
+
 const profileSchema = z.object({
   name: z.string().max(100).optional().or(z.literal("")),
   email: z.string().email("Enter a valid email"),
-  phone: z.string().max(20).optional().or(z.literal("")),
+  phone: phoneFieldSchema,
+  aadhaarNumber: z
+    .string()
+    .min(1, "Aadhaar is required")
+    .refine((s) => /^\d{12}$/.test(s.replace(/\D/g, "")), {
+      message: "Aadhaar must be exactly 12 digits.",
+    }),
+  studentRank: z
+    .string()
+    .min(1, "Rank is required")
+    .refine((s) => /^\d+$/.test(s.trim()), { message: "Enter a valid whole number." })
+    .refine((s) => Number.parseInt(s.trim(), 10) > 0, {
+      message: "Rank must be a positive number.",
+    }),
 });
 
-type ProfileValues = z.infer<typeof profileSchema>;
+type ProfileFormValues = z.infer<typeof profileSchema>;
 
 const passwordSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
@@ -40,9 +67,9 @@ type PasswordValues = z.infer<typeof passwordSchema>;
 function AccountContent() {
   const { user, logout, refreshUser } = useAuth();
 
-  const profileForm = useForm<ProfileValues>({
+  const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues: { name: "", email: "", phone: "" },
+    defaultValues: { name: "", email: "", phone: "", aadhaarNumber: "", studentRank: "" },
   });
 
   const {
@@ -71,6 +98,8 @@ function AccountContent() {
       name: user.name ?? "",
       email: user.email,
       phone: user.phone ?? "",
+      aadhaarNumber: user.aadhaarNumber ?? "",
+      studentRank: user.studentRank != null ? String(user.studentRank) : "",
     });
   }, [user, profileForm]);
 
@@ -90,7 +119,9 @@ function AccountContent() {
         {
           name: data.name || null,
           email: data.email,
-          phone: data.phone || null,
+          phone: (data.phone?.trim() ?? "") || null,
+          aadhaarNumber: data.aadhaarNumber.replace(/\D/g, ""),
+          studentRank: Number.parseInt(data.studentRank.trim(), 10),
         },
         token,
       );
@@ -135,7 +166,7 @@ function AccountContent() {
         title="Account"
         description={
           user.role === "student"
-            ? "Update your name, email, and phone."
+            ? "Update your profile — name, email, phone, Aadhaar, and rank are required before enrolling."
             : "Administrator — edit admin users under Admin → Admins."
         }
       />
@@ -185,6 +216,38 @@ function AccountContent() {
                 {profileForm.formState.errors.phone ? (
                   <p className="text-sm text-destructive">
                     {profileForm.formState.errors.phone.message}
+                  </p>
+                ) : null}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="profile-aadhaar">Aadhaar number</Label>
+                <Input
+                  id="profile-aadhaar"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="12-digit Aadhaar"
+                  {...profileForm.register("aadhaarNumber")}
+                />
+                {profileForm.formState.errors.aadhaarNumber ? (
+                  <p className="text-sm text-destructive">
+                    {profileForm.formState.errors.aadhaarNumber.message}
+                  </p>
+                ) : null}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="profile-rank">Rank</Label>
+                <Input
+                  id="profile-rank"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="Exam rank (positive integer)"
+                  {...profileForm.register("studentRank")}
+                />
+                {profileForm.formState.errors.studentRank ? (
+                  <p className="text-sm text-destructive">
+                    {profileForm.formState.errors.studentRank.message}
                   </p>
                 ) : null}
               </div>

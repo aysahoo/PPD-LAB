@@ -6,6 +6,7 @@ import { signAccessToken, verifyAccessToken } from "../auth/jwt.js";
 import { revokeAccessTokenJti } from "../auth/revocation.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
 import { authenticate } from "../auth/guards.js";
+import { isStudentProfileComplete } from "../lib/student-profile.js";
 import { db } from "../db/client.js";
 import { users } from "../db/schema.js";
 
@@ -29,13 +30,25 @@ const changePasswordBody = z.object({
 const ACCESS_EXPIRES_SEC = 7 * 24 * 60 * 60;
 
 function mapUser(row: typeof users.$inferSelect) {
+  const role = row.role as "student" | "admin";
+  const profileComplete =
+    role !== "student" ||
+    isStudentProfileComplete(
+      row.name,
+      row.phone,
+      row.aadhaarNumber,
+      row.studentRank,
+    );
   return {
     id: row.id,
     name: row.name,
     email: row.email,
     phone: row.phone,
-    role: row.role,
+    aadhaarNumber: row.aadhaarNumber,
+    studentRank: row.studentRank,
+    role,
     isActive: row.isActive ?? true,
+    profileComplete,
   };
 }
 

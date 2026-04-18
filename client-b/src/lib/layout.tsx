@@ -10,7 +10,7 @@ export const NARROW_MAX = 512
 /** Search fields and compact in-page forms (~ max-w-md) */
 export const maxWField = 448
 
-/** Inner width for header, footer, and main content */
+/** Inner width for header and main content */
 export function ShellRow({ children }: { children: ReactNode }) {
   return (
     <Container maw={SHELL_MAX} mx="auto" px={{ base: 'md', sm: 'lg' }} w="100%">

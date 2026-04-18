@@ -11,10 +11,10 @@ export const authCardClass = 'w-full max-w-md'
 /** Search fields and compact in-page forms */
 export const maxWField = 'max-w-md'
 
-/** Inner width for header, footer, and main content — keep in sync across shells */
+/** Inner width for header and main content — keep in sync across shells */
 export const SHELL_MAX = 'max-w-5xl'
 
-/** Horizontal padding aligned with header/footer edges */
+/** Horizontal padding aligned with header edges */
 export const shellPaddingX = 'px-4 sm:px-6'
 
 export const shellInnerRow = cn('mx-auto flex w-full', SHELL_MAX, shellPaddingX)
